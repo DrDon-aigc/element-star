@@ -1,6 +1,6 @@
 # 元素星空
 
-单页化学小游戏。前端静态文件在 `public/`，排行榜后端已迁移为 Cloudflare Pages Functions，数据库继续使用 Neon Postgres。
+单页化学小游戏。前端静态文件在 `public/`，排行榜后端使用 Cloudflare Pages Functions，数据库使用 Cloudflare D1。
 
 ## 项目结构
 
@@ -10,8 +10,8 @@ public/asset/                 视频等静态资源
 functions/api/saveScore.js    Cloudflare 保存成绩接口：/api/saveScore
 functions/api/getLeaderboard.js Cloudflare 排行榜接口：/api/getLeaderboard
 server/leaderboard.js         排行榜后端核心逻辑
-neon/leaderboard.sql          Neon 建表 SQL
-package.json                  后端函数依赖
+d1/leaderboard.sql            D1 建表 SQL
+package.json                  项目脚本
 ```
 
 不要上传或提交：
@@ -28,7 +28,7 @@ node_modules/
 
 ## Cloudflare Pages 部署
 
-这个项目的前端本身不需要打包，但 Cloudflare 需要安装 `package.json` 里的 Neon 函数依赖，然后发布 `public/`。
+这个项目的前端本身不需要打包，Cloudflare Pages 发布 `public/`，后端接口由 `functions/` 目录里的 Pages Functions 提供。
 
 Pages 构建设置：
 
@@ -39,28 +39,31 @@ Build output directory: public
 Root directory: 留空
 ```
 
-部署后进入 Cloudflare Pages 项目：
+部署后进入 Cloudflare Pages 项目，把 D1 数据库绑定到 Functions：
 
 1. 打开 `Settings`。
-2. 打开 `Environment variables`。
-3. 在 Production 环境新增变量：
+2. 打开 `Bindings`。
+3. 新增 `D1 database` binding。
+4. Binding name 填：
 
 ```text
-DATABASE_URL = 你的 Neon 连接字符串
+DB
 ```
 
-保存后重新部署一次。不要把真实 `DATABASE_URL` 写进 GitHub。
+5. 数据库选择 `element-star-db`。
 
-## Neon SQL Editor 初始化
+保存后重新部署一次。
 
-在 Neon 的 SQL Editor 中执行：
+## D1 初始化
+
+在 Cloudflare D1 的 Console 中执行：
 
 ```sql
 CREATE TABLE IF NOT EXISTS leaderboard (
-  id BIGSERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL,
   time_used INTEGER NOT NULL CHECK (time_used > 0),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_leaderboard_time
@@ -88,12 +91,6 @@ WHERE id = <要删除的记录ID>;
 
 ```bash
 npm install
-```
-
-新建本地变量文件 `.dev.vars`：
-
-```text
-DATABASE_URL="postgresql://..."
 ```
 
 启动 Cloudflare Pages 本地环境：

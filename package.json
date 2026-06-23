@@ -5,8 +5,5 @@
   "scripts": {
     "dev": "npx wrangler pages dev public",
     "test": "node --test"
-  },
-  "dependencies": {
-    "@neondatabase/serverless": "^1.1.0"
   }
 }

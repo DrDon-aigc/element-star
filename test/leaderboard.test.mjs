@@ -2,11 +2,31 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  getDatabaseUrl,
+  getDatabase,
   handleGetLeaderboard,
   handleSaveScore,
   validateScorePayload,
 } from '../server/leaderboard.js';
+
+function createD1Stub({ rows = [], onRun = () => {} } = {}) {
+  return {
+    prepare(query) {
+      return {
+        bind(...values) {
+          return {
+            async run() {
+              onRun({ query, values });
+              return { success: true, meta: { changes: 1 } };
+            },
+          };
+        },
+        async all() {
+          return { success: true, results: rows };
+        },
+      };
+    },
+  };
+}
 
 describe('leaderboard service', () => {
   it('normalizes a valid score payload', () => {
@@ -30,12 +50,12 @@ describe('leaderboard service', () => {
     });
   });
 
-  it('reads the database URL from Cloudflare environment bindings', () => {
-    assert.equal(getDatabaseUrl({ DATABASE_URL: 'postgres://cloudflare' }), 'postgres://cloudflare');
+  it('reads the D1 database from Cloudflare environment bindings', () => {
+    const db = createD1Stub();
+    assert.equal(getDatabase({ DB: db }), db);
   });
 
-  it('saves scores through the provided Neon client factory', async () => {
-    let databaseUrl = '';
+  it('saves scores through the provided D1 database binding', async () => {
     const calls = [];
     const response = await handleSaveScore(
       new Request('https://example.com/api/saveScore', {
@@ -43,27 +63,20 @@ describe('leaderboard service', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: '  Alice  ', time_used: 42 }),
       }),
-      { DATABASE_URL: 'postgres://test' },
-      (url) => {
-        databaseUrl = url;
-        return async (strings, ...values) => {
-          calls.push({ strings: [...strings], values });
-          return [];
-        };
-      },
+      {},
+      createD1Stub({ onRun: (call) => calls.push(call) }),
     );
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { success: true });
-    assert.equal(databaseUrl, 'postgres://test');
     assert.deepEqual(calls[0].values, ['Alice', 42]);
   });
 
   it('returns leaderboard rows from the database', async () => {
     const rows = [{ id: 1, username: 'Alice', time_used: 42, created_at: '2026-06-23T00:00:00Z' }];
     const response = await handleGetLeaderboard(
-      { DATABASE_URL: 'postgres://test' },
-      () => async () => rows,
+      {},
+      createD1Stub({ rows }),
     );
 
     assert.equal(response.status, 200);

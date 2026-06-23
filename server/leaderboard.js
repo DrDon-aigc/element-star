@@ -1,5 +1,3 @@
-import { neon } from '@neondatabase/serverless';
-
 const jsonHeaders = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
@@ -12,14 +10,14 @@ export function jsonResponse(body, status = 200) {
   });
 }
 
-export function getDatabaseUrl(env = {}) {
-  const databaseUrl = env.DATABASE_URL;
+export function getDatabase(env = {}) {
+  const database = env.DB;
 
-  if (typeof databaseUrl !== 'string' || databaseUrl.trim() === '') {
-    throw new Error('Missing DATABASE_URL environment variable.');
+  if (!database || typeof database.prepare !== 'function') {
+    throw new Error('Missing DB D1 database binding.');
   }
 
-  return databaseUrl.trim();
+  return database;
 }
 
 export function validateScorePayload(payload) {
@@ -59,24 +57,24 @@ export function validateScorePayload(payload) {
   };
 }
 
-export async function handleGetLeaderboard(env, createSql = neon) {
+export async function handleGetLeaderboard(env, database = null) {
   try {
-    const sql = createSql(getDatabaseUrl(env));
+    const db = database ?? getDatabase(env);
 
-    const leaderboard = await sql`
+    const { results = [] } = await db.prepare(`
       SELECT id, username, time_used, created_at
       FROM leaderboard
       ORDER BY time_used ASC, created_at ASC, id ASC
       LIMIT 20
-    `;
+    `).all();
 
-    return jsonResponse(leaderboard);
+    return jsonResponse(results);
   } catch (error) {
     return jsonResponse({ error: error.message }, 500);
   }
 }
 
-export async function handleSaveScore(request, env, createSql = neon) {
+export async function handleSaveScore(request, env, database = null) {
   if (request.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
@@ -94,11 +92,11 @@ export async function handleSaveScore(request, env, createSql = neon) {
       return jsonResponse({ error: validation.error }, validation.status);
     }
 
-    const sql = createSql(getDatabaseUrl(env));
-    await sql`
+    const db = database ?? getDatabase(env);
+    await db.prepare(`
       INSERT INTO leaderboard (username, time_used)
-      VALUES (${validation.value.username}, ${validation.value.timeUsed})
-    `;
+      VALUES (?, ?)
+    `).bind(validation.value.username, validation.value.timeUsed).run();
 
     return jsonResponse({ success: true });
   } catch (error) {
