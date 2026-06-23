@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>元素星空 2.0 - 治愈系化学寻星</title>
+    <style>
+        :root {
+            --bg-top: #07111f;
+            --bg-bottom: #13233d;
+            --panel: rgba(8, 19, 37, 0.78);
+            --panel-soft: rgba(18, 34, 62, 0.62);
+            --panel-strong: rgba(9, 18, 33, 0.92);
+            --line: rgba(148, 196, 255, 0.22);
+            --line-strong: rgba(123, 211, 255, 0.38);
+            --text-main: #eff6ff;
+            --text-soft: #bfd0e6;
+            --primary: #7dd3fc;
+            --secondary: #a5b4fc;
+            --accent: #fca5a5;
+            --success: #6ee7b7;
+            --error: #fb7185;
+            --gold: #fde68a;
+            --shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            position: relative;
+            font-family: "Hiragino Sans GB", "PingFang SC", "Noto Sans SC", sans-serif;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(125, 211, 252, 0.12), transparent 30%),
+                radial-gradient(circle at 82% 16%, rgba(165, 180, 252, 0.16), transparent 26%),
+                linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+            color: var(--text-main);
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            font-family: "STZhongsong", "Songti SC", "Noto Serif SC", serif;
+            font-weight: 400;
+            letter-spacing: 0.06em;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        #starfield,
+        #particle-layer {
+            position: fixed;
+            inset: 0;
+        }
+
+        #starfield {
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        #particle-layer {
+            z-index: 120;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .nebula {
+            position: fixed;
+            inset: auto;
+            width: 44vmax;
+            height: 44vmax;
+            border-radius: 50%;
+            filter: blur(65px);
+            opacity: 0.24;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .nebula.one {
+            top: -14vmax;
+            left: -12vmax;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.5), transparent 68%);
+        }
+
+        .nebula.two {
+            right: -16vmax;
+            bottom: -18vmax;
+            background: radial-gradient(circle, rgba(252, 165, 165, 0.32), transparent 72%);
+        }
+
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100dvh;
+            padding: clamp(16px, 3vw, 28px);
+            overflow: hidden;
+            animation: screenFade 0.65s ease;
+            z-index: 10;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .panel {
+            width: min(100%, 1180px);
+            background: linear-gradient(180deg, rgba(15, 29, 53, 0.8) 0%, rgba(6, 14, 28, 0.84) 100%);
+            border: 1px solid var(--line);
+            border-radius: 32px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .panel-shell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            text-align: center;
+            padding: clamp(28px, 4vw, 48px);
+        }
+
+        .eyebrow {
+            font-size: 0.82rem;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        .headline {
+            font-size: clamp(2.3rem, 5vw, 4.8rem);
+            text-shadow: 0 0 30px rgba(125, 211, 252, 0.24);
+        }
+
+        .subtitle {
+            max-width: 680px;
+            margin: 0;
+            font-size: clamp(1rem, 1.8vw, 1.2rem);
+            line-height: 1.8;
+            color: var(--text-soft);
+        }
+
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            border: 1px solid rgba(166, 196, 255, 0.24);
+            border-radius: 999px;
+            padding: 14px 26px;
+            min-width: 180px;
+            color: var(--text-main);
+            cursor: pointer;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+                rgba(10, 20, 38, 0.54);
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.2);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--line-strong);
+            box-shadow: 0 18px 45px rgba(8, 30, 62, 0.36);
+            background:
+                linear-gradient(180deg, rgba(125, 211, 252, 0.18), rgba(255, 255, 255, 0.05)),
+                rgba(10, 20, 38, 0.72);
+        }
+
+        .btn.secondary {
+            background: rgba(8, 19, 37, 0.45);
+        }
+
+        .btn.compact {
+            min-width: 0;
+            padding: 10px 18px;
+            font-size: 0.96rem;
+        }
+
+        .input-field {
+            width: min(100%, 360px);
+            padding: 15px 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(125, 211, 252, 0.34);
+            background: rgba(5, 15, 29, 0.65);
+            color: var(--text-main);
+            text-align: center;
+            outline: none;
+            transition: box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .input-field::placeholder {
+            color: rgba(191, 208, 230, 0.72);
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 6px rgba(125, 211, 252, 0.12);
+        }
+
+        .note {
+            margin: 0;
+            color: rgba(191, 208, 230, 0.72);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .overlay-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(2, 7, 18, 0.72);
+            backdrop-filter: blur(18px);
+            z-index: 220;
+        }
+
+        .overlay-modal.active {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(100%, 460px);
+            padding: 28px;
+            border-radius: 28px;
+            border: 1px solid var(--line-strong);
+            background: linear-gradient(180deg, rgba(16, 30, 52, 0.94), rgba(6, 15, 28, 0.94));
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .modal-card h2 {
+            font-size: clamp(1.6rem, 4vw, 2.3rem);
+            margin-bottom: 0;
+        }
+
+        .modal-card p {
+            margin: 0 0 22px;
+            color: var(--text-soft);
+            line-height: 1.7;
+        }
+
+        .orientation-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            margin-bottom: 16px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            color: var(--primary);
+            letter-spacing: 0.08em;
+            font-size: 0.86rem;
+        }
+
+        .screen-intro {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .intro-shell {
+            position: relative;
+            width: min(100%, 1380px);
+            height: calc(100dvh - clamp(28px, 5vw, 48px));
+            border-radius: 34px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: var(--shadow);
+            background: linear-gradient(145deg, rgba(7, 14, 30, 0.96), rgba(4, 10, 20, 0.96));
+        }
+
+        #intro-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.7s ease, transform 0.9s ease;
+            transform: scale(1.03);
+            background: #000;
+        }
+
+        #intro-video.playing {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #intro-video.ending {
+            opacity: 0;
+            transform: scale(1.05);
+        }
+
+        .intro-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: clamp(24px, 4vw, 44px);
+            background:
+                linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.68)),
+                linear-gradient(90deg, rgba(3, 7, 17, 0.66), transparent 44%);
+        }
+
+        .status-text {
+            color: rgba(191, 208, 230, 0.82);
+            letter-spacing: 0.12em;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+        }
+
+        .name-panel,
+        .home-panel,
+        .result-panel,
+        .leaderboard-panel {
+            width: min(100%, 960px);
+        }
+
+        .leaderboard-panel {
+            height: min(100%, calc(100dvh - 32px));
+        }
+
+        .home-panel {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .home-panel::before {
+            content: "";
+            position: absolute;
+            top: -18%;
+            right: -12%;
+            width: 38%;
+            height: 50%;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.24), transparent 72%);
+            pointer-events: none;
+        }
+
+        .identity-chip {
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            border: 1px solid rgba(125, 211, 252, 0.22);
+            color: var(--primary);
+            font-size: 0.92rem;
+            letter-spacing: 0.04em;
+        }
+
+        .mode-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .mode-card {
+            padding: 20px;
+            border-radius: 24px;
+            border: 1px solid rgba(166, 196, 255, 0.15);
+            background: rgba(9, 21, 40, 0.5);
+            text-align: left;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(125, 211, 252, 0.34);
+            background: rgba(12, 28, 54, 0.7);
+        }
+
+        .mode-card strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+
+        .mode-card span {
+            display: block;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: var(--text-soft);
+        }
+
+        .leaderboard-layout {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: clamp(24px, 4vw, 34px);
+        }
+
+        .leaderboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .leaderboard-copy {
+            max-width: 560px;
+        }
+
+        .leaderboard-copy p {
+            margin: 10px 0 0;
+            color: var(--text-soft);
+            line-height: 1.7;
+        }
+
+        .leaderboard-box {
+            min-height: 0;
+            flex: 1;
+            overflow: hidden;
+            border-radius: 24px;
+            border: 1px solid rgba(166, 196, 255, 0.14);
+            background: rgba(4, 11, 22, 0.48);
+            padding: 18px;
+        }
+
+        #leaderboard-content {
+            height: 100%;
+            overflow: auto;
+            padding-right: 6px;
+        }
+
+        #leaderboard-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #leaderboard-content::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.28);
+        }
+
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .leaderboard-item {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(166, 196, 255, 0.08);
+        }
+
+        .leaderboard-rank {
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #081322;
+            background: linear-gradient(180deg, var(--gold), #fbbf24);
+            font-weight: 700;
+        }
+
+        .leaderboard-name {
+            min-width: 0;
+        }
+
+        .leaderboard-name b,
+        .leaderboard-name small {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .leaderboard-name small {
+            margin-top: 4px;
+            color: rgba(191, 208, 230, 0.7);
+        }
+
+        .leaderboard-time {
+            color: var(--success);
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .game-shell {
+            width: min(100%, 1260px);
+            height: 100%;
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            gap: clamp(12px, 2.4vh, 18px);
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 24px;
+            border: 1px solid var(--line);
+            background: rgba(9, 21, 40, 0.72);
+            backdrop-filter: blur(14px);
+        }
+
+        .status-block {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 52px;
+            padding: 0 12px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-block.control {
+            background: transparent;
+            justify-content: flex-end;
+            padding: 0;
+        }
+
+        .prompt-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: clamp(18px, 2vw, 24px);
+            border-radius: 28px;
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(90deg, rgba(12, 28, 54, 0.78), rgba(8, 18, 33, 0.62)),
+                rgba(8, 18, 33, 0.7);
+            overflow: hidden;
+        }
+
+        .prompt-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .prompt-copy h2 {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: var(--text-soft);
+        }
+
+        .prompt-copy p {
+            margin: 0;
+            color: rgba(191, 208, 230, 0.74);
+        }
+
+        .element-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: min(100%, 280px);
+            padding: 16px 28px;
+            border-radius: 24px;
+            border: 1px solid rgba(125, 211, 252, 0.34);
+            background:
+                radial-gradient(circle at top, rgba(125, 211, 252, 0.22), transparent 70%),
+                rgba(10, 24, 44, 0.76);
+            box-shadow: inset 0 0 35px rgba(125, 211, 252, 0.08);
+            font-size: clamp(1.6rem, 4vw, 2.8rem);
+            letter-spacing: 0.08em;
+        }
+
+        .element-badge.swap {
+            animation: badgeFlash 0.48s ease;
+        }
+
+        .board-stage {
+            min-height: 0;
+            border-radius: 30px;
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(180deg, rgba(10, 24, 44, 0.58), rgba(5, 13, 24, 0.8)),
+                rgba(4, 11, 22, 0.7);
+            overflow: hidden;
+            padding: clamp(14px, 2vw, 24px);
+        }
+
+        .table-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .periodic-table {
+            display: grid;
+            gap: var(--board-gap, 6px);
+            grid-template-columns: repeat(18, var(--cell-size, 42px));
+            grid-template-rows: repeat(4, var(--cell-size, 42px));
+        }
+
+        .cell {
+            width: var(--cell-size, 42px);
+            height: var(--cell-size, 42px);
+            border-radius: clamp(8px, 1.2vw, 14px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.78rem, calc(var(--cell-size, 42px) * 0.26), 1.06rem);
+            line-height: 1.1;
+            font-weight: 700;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+        }
+
+        .cell.empty-slot {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(191, 208, 230, 0.34);
+            cursor: pointer;
+        }
+
+        .cell.empty-slot:hover {
+            transform: translateY(-1px);
+            border-color: rgba(125, 211, 252, 0.7);
+            box-shadow: 0 0 20px rgba(125, 211, 252, 0.22);
+        }
+
+        .cell.filled {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 18px 28px rgba(0, 0, 0, 0.16);
+            animation: popIn 0.4s ease-out;
+        }
+
+        .cell.filled small {
+            margin-top: 2px;
+            font-size: clamp(0.46rem, calc(var(--cell-size, 42px) * 0.17), 0.7rem);
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .cell.hidden {
+            visibility: hidden;
+        }
+
+        .cell.correct-hit::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.48);
+            animation: correctPulse 0.7s ease-out forwards;
+        }
+
+        .shake {
+            animation: shake 0.35s ease;
+            background: rgba(251, 113, 133, 0.24) !important;
+            border-color: rgba(251, 113, 133, 0.72) !important;
+        }
+
+        .color-group-1 { background: linear-gradient(145deg, #fb7185, #ef4444); }
+        .color-group-2 { background: linear-gradient(145deg, #fbbf24, #f59e0b); }
+        .color-group-3 { background: linear-gradient(145deg, #34d399, #10b981); }
+        .color-group-4 { background: linear-gradient(145deg, #60a5fa, #2563eb); }
+        .color-group-5 { background: linear-gradient(145deg, #a78bfa, #8b5cf6); }
+
+        .result-panel .headline {
+            font-size: clamp(2.1rem, 4vw, 3.8rem);
+        }
+
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: max(22px, env(safe-area-inset-bottom));
+            transform: translate(-50%, 120%);
+            min-width: min(92vw, 280px);
+            max-width: min(92vw, 720px);
+            padding: 14px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(125, 211, 252, 0.32);
+            background: rgba(6, 14, 28, 0.9);
+            color: var(--text-main);
+            text-align: center;
+            line-height: 1.5;
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
+            z-index: 140;
+            opacity: 0;
+            transition: transform 0.35s ease, opacity 0.35s ease;
+        }
+
+        #toast.show {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+
+        .star-particle {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--size, 10px);
+            height: var(--size, 10px);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle, rgba(255, 255, 255, 0.92), rgba(125, 211, 252, 0.72) 58%, transparent 72%);
+            box-shadow: 0 0 18px rgba(125, 211, 252, 0.55);
+            transform: translate(-50%, -50%);
+            animation: particleBurst 0.75s ease-out forwards;
+        }
+
+        @keyframes screenFade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.68); opacity: 0; }
+            70% { transform: scale(1.08); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes correctPulse {
+            0% { opacity: 0.88; transform: scale(0.88); }
+            100% { opacity: 0; transform: scale(1.22); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+            75% { transform: translateX(-2px); }
+        }
+
+        @keyframes badgeFlash {
+            0% { transform: scale(0.94); opacity: 0.35; }
+            55% { transform: scale(1.04); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes particleBurst {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.4);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.3);
+            }
+        }
+
+        @media (max-width: 960px) {
+            .mode-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .prompt-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .element-badge {
+                width: 100%;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .screen {
+                padding: 12px;
+            }
+
+            .leaderboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .status-block.control {
+                justify-content: center;
+            }
+
+            .intro-shell {
+                height: calc(100dvh - 24px);
+                border-radius: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    <div class="nebula one"></div>
+    <div class="nebula two"></div>
+    <div id="particle-layer"></div>
+
+    <div id="orientation-modal" class="overlay-modal active">
+        <div class="modal-card">
+            <div class="orientation-pill">横屏</div>
+            <h2>请先横过来</h2>
+            <button id="orientation-confirm" class="btn">已知晓</button>
+        </div>
+    </div>
+
+    <div id="screen-intro" class="screen active screen-intro">
+        <div class="intro-shell">
+            <video id="intro-video" playsinline preload="auto" src="asset/%E8%A7%86%E9%A2%91%E8%8A%82%E7%82%B9%202.mp4"></video>
+            <div class="intro-overlay">
+                <div class="status-text" id="intro-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-name" class="screen">
+        <div class="panel name-panel panel-shell">
+            <div class="eyebrow">Commander</div>
+            <h1 class="headline">写下你的指挥官名字</h1>
+            <input type="text" id="username-input" class="input-field" maxlength="24" placeholder="输入名字">
+            <div class="btn-row">
+                <button id="name-submit" class="btn">进入</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-home" class="screen">
+        <div class="panel home-panel panel-shell">
+            <div class="identity-chip" id="identity-chip">指挥官：匿名星旅者</div>
+            <div class="eyebrow">Mission</div>
+            <h1 class="headline">选择你的星际路径</h1>
+
+            <div class="mode-grid">
+                <button class="mode-card btn" id="casual-mode-btn">
+                    <strong>🌌 漫游模式</strong>
+                    <span>轻松游玩</span>
+                </button>
+                <button class="mode-card btn" id="compete-mode-btn">
+                    <strong>⏳ 跃迁模式</strong>
+                    <span>90 秒挑战</span>
+                </button>
+                <button class="mode-card btn" id="leaderboard-btn">
+                    <strong>🏆 星空排行榜</strong>
+                    <span>查看前 20 名</span>
+                </button>
+            </div>
+
+            <div class="btn-row">
+                <button id="change-name-btn" class="btn secondary compact">更换代号</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-leaderboard" class="screen">
+        <div class="panel leaderboard-panel leaderboard-layout">
+            <div class="leaderboard-header">
+                <div class="leaderboard-copy">
+                    <div class="eyebrow">Top 20</div>
+                    <h1>星空排行榜</h1>
+                </div>
+                <button class="btn compact secondary" id="leaderboard-back-btn">返回大厅</button>
+            </div>
+
+            <div class="leaderboard-box">
+                <div id="leaderboard-content">连接星空数据库中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <div class="game-shell">
+            <div class="status-bar">
+                <div class="status-block" id="score-display">星辰: 0 / 20</div>
+                <div class="status-block" id="time-display">时间: --</div>
+                <div class="status-block control">
+                    <button class="btn compact secondary" id="game-back-btn">返回大厅</button>
+                </div>
+            </div>
+
+            <div class="prompt-box">
+                <div class="prompt-copy">
+                    <h2>把元素放回正确位置</h2>
+                </div>
+                <div id="current-element" class="element-badge">H 氢</div>
+            </div>
+
+            <div class="board-stage" id="board-stage">
+                <div class="table-wrapper">
+                    <div class="periodic-table" id="table-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen">
+        <div class="panel result-panel panel-shell">
+            <div class="eyebrow">Mission Debrief</div>
+            <h1 class="headline" id="result-title">任务完成</h1>
+            <p class="subtitle" id="result-desc">你找回了全部元素星辰。</p>
+            <div class="btn-row">
+                <button class="btn" id="result-home-btn">返回大厅</button>
+                <button class="btn secondary" id="result-leaderboard-btn">查看排行榜</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const elementData = [
+            { num: 1, sym: 'H', name: '氢', row: 1, col: 1, group: 3, fact: '宇宙中最轻盈的舞者，一切星辰的起点。' },
+            { num: 2, sym: 'He', name: '氦', row: 1, col: 18, group: 4, fact: '让气球挣脱重力，也让太阳恒久发光。' },
+            { num: 3, sym: 'Li', name: '锂', row: 2, col: 1, group: 1, fact: '最轻的金属，藏在电池里默默驱动世界。' },
+            { num: 4, sym: 'Be', name: '铍', row: 2, col: 2, group: 2, fact: '甘甜却带有剧毒的矛盾体，航天器的坚甲。' },
+            { num: 5, sym: 'B', name: '硼', row: 2, col: 13, group: 5, fact: '坚韧的骨骼，能让玻璃经受住冰火考验。' },
+            { num: 6, sym: 'C', name: '碳', row: 2, col: 14, group: 3, fact: '既是柔软的铅笔芯，也是璀璨的钻石。' },
+            { num: 7, sym: 'N', name: '氮', row: 2, col: 15, group: 3, fact: '空气中低调的多数派，生命不可或缺的基石。' },
+            { num: 8, sym: 'O', name: '氧', row: 2, col: 16, group: 3, fact: '每一口呼吸的馈赠，燃烧与生命的催化剂。' },
+            { num: 9, sym: 'F', name: '氟', row: 2, col: 17, group: 3, fact: '活泼好动的破坏王，却能保护你的牙齿。' },
+            { num: 10, sym: 'Ne', name: '氖', row: 2, col: 18, group: 4, fact: '通电后，它点亮了整条街的红霓虹灯。' },
+            { num: 11, sym: 'Na', name: '钠', row: 3, col: 1, group: 1, fact: '遇水即燃的暴脾气，化作食盐却滋味万千。' },
+            { num: 12, sym: 'Mg', name: '镁', row: 3, col: 2, group: 2, fact: '燃烧时发出耀眼的白光，老相机的闪光灯。' },
+            { num: 13, sym: 'Al', name: '铝', row: 3, col: 13, group: 5, fact: '从前比黄金还贵，如今化作易拉罐陪伴你。' },
+            { num: 14, sym: 'Si', name: '硅', row: 3, col: 14, group: 5, fact: '沙子里的沉睡者，苏醒后构建了整个信息时代。' },
+            { num: 15, sym: 'P', name: '磷', row: 3, col: 15, group: 3, fact: '黑暗中发出幽幽冷光，点燃火柴的魔法。' },
+            { num: 16, sym: 'S', name: '硫', row: 3, col: 16, group: 3, fact: '火山口的淡黄结晶，热烈与毁灭的象征。' },
+            { num: 17, sym: 'Cl', name: '氯', row: 3, col: 17, group: 3, fact: '刺鼻的黄绿气体，净化了泳池的一池清水。' },
+            { num: 18, sym: 'Ar', name: '氩', row: 3, col: 18, group: 4, fact: '慵懒的隐士，在白炽灯泡里默默守护灯丝。' },
+            { num: 19, sym: 'K', name: '钾', row: 4, col: 1, group: 1, fact: '植物繁茂的养料，让你心跳稳健的秘密。' },
+            { num: 20, sym: 'Ca', name: '钙', row: 4, col: 2, group: 2, fact: '白垩纪的记忆，支撑起你坚硬的骨骼与牙齿。' }
+        ];
+
+        let audioCtx;
+        let currentMode = 'casual';
+        let currentUsername = '';
+        let queue = [];
+        let currentTarget = null;
+        let score = 0;
+        let timeLeft = 90;
+        let timer = null;
+        let toastTimeout = null;
+
+        const introVideo = document.getElementById('intro-video');
+        const introStatus = document.getElementById('intro-status');
+        const orientationModal = document.getElementById('orientation-modal');
+        const usernameInput = document.getElementById('username-input');
+        const identityChip = document.getElementById('identity-chip');
+        const tableContainer = document.getElementById('table-container');
+        const currentElementUI = document.getElementById('current-element');
+        const scoreDisplay = document.getElementById('score-display');
+        const timeDisplay = document.getElementById('time-display');
+        const toast = document.getElementById('toast');
+        const particleLayer = document.getElementById('particle-layer');
+        const boardStage = document.getElementById('board-stage');
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(frequency, start, duration, type, peak) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(frequency, start);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.linearRampToValueAtTime(peak, start + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+            osc.start(start);
+            osc.stop(start + duration);
+        }
+
+        function playSuccessSound() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            playTone(659.25, t, 0.26, 'sine', 0.08);
+            playTone(880, t + 0.08, 0.28, 'triangle', 0.07);
+            playTone(1046.5, t + 0.16, 0.36, 'sine', 0.09);
+        }
+
+        function playErrorSound() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            playTone(220, t, 0.28, 'triangle', 0.12);
+            playTone(164.81, t + 0.05, 0.28, 'sawtooth', 0.08);
+        }
+
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 160; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 1.6 + 0.2,
+                    speed: Math.random() * 0.22 + 0.06,
+                    alpha: Math.random() * 0.8 + 0.1,
+                    alphaDir: Math.random() > 0.5 ? 1 : -1
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            stars.forEach((star) => {
+                ctx.globalAlpha = star.alpha;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+                ctx.fill();
+                star.y -= star.speed;
+                if (star.y < -2) star.y = canvas.height + 2;
+                star.alpha += 0.006 * star.alphaDir;
+                if (star.alpha <= 0.12 || star.alpha >= 0.9) {
+                    star.alphaDir *= -1;
+                }
+            });
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(drawStars);
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            if (screenId !== 'screen-game' && timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            if (screenId === 'screen-game') {
+                requestAnimationFrame(updateBoardMetrics);
+            }
+        }
+
+        function showToast(text) {
+            toast.textContent = text;
+            toast.classList.add('show');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2600);
+        }
+
+        function shuffle(array) {
+            const copy = [...array];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function updateIdentityChip() {
+            identityChip.textContent = `指挥官：${currentUsername || '匿名星旅者'}`;
+        }
+
+        function confirmUsername() {
+            const input = usernameInput.value.trim();
+            if (!input) {
+                showToast('请先输入指挥官代号。');
+                usernameInput.focus();
+                return;
+            }
+            if (input.length > 24) {
+                showToast('代号最多 24 个字符。');
+                usernameInput.focus();
+                return;
+            }
+            currentUsername = input;
+            updateIdentityChip();
+            showScreen('screen-home');
+            showToast(`欢迎回来，${currentUsername}。`);
+        }
+
+        function startIntroVideo() {
+            initAudio();
+            orientationModal.classList.remove('active');
+            introStatus.textContent = '';
+            showScreen('screen-intro');
+            introVideo.classList.remove('ending');
+
+            const playback = introVideo.play();
+            if (playback && typeof playback.then === 'function') {
+                playback.then(() => {
+                    introVideo.classList.add('playing');
+                }).catch(() => {
+                    fallbackToNameScreen('开场视频未能播放，已直接进入登记页。');
+                });
+            } else {
+                introVideo.classList.add('playing');
+            }
+        }
+
+        function fallbackToNameScreen(message) {
+            orientationModal.classList.remove('active');
+            introVideo.pause();
+            introVideo.classList.remove('playing', 'ending');
+            introStatus.textContent = '';
+            showScreen('screen-name');
+            if (message) {
+                showToast(message);
+            }
+        }
+
+        function finishIntroVideo() {
+            introStatus.textContent = '';
+            introVideo.classList.add('ending');
+            setTimeout(() => {
+                introVideo.pause();
+                introVideo.currentTime = 0;
+                introVideo.classList.remove('playing', 'ending');
+                showScreen('screen-name');
+            }, 700);
+        }
+
+        function updateBoardMetrics() {
+            const wrapper = boardStage.querySelector('.table-wrapper');
+            if (!wrapper) return;
+            const width = wrapper.clientWidth;
+            const height = wrapper.clientHeight;
+            if (!width || !height) return;
+
+            const gap = width < 420 ? 4 : width < 780 ? 5 : 6;
+            const widthLimitedCell = Math.floor((width - gap * 17) / 18);
+            const heightLimitedCell = Math.floor((height - gap * 3) / 4);
+            const cellSize = Math.max(12, Math.min(48, widthLimitedCell, heightLimitedCell));
+
+            tableContainer.style.setProperty('--board-gap', `${gap}px`);
+            tableContainer.style.setProperty('--cell-size', `${cellSize}px`);
+        }
+
+        function pulseCurrentBadge() {
+            currentElementUI.classList.remove('swap');
+            void currentElementUI.offsetWidth;
+            currentElementUI.classList.add('swap');
+        }
+
+        function burstParticles(cell) {
+            const rect = cell.getBoundingClientRect();
+            const originX = rect.left + rect.width / 2;
+            const originY = rect.top + rect.height / 2;
+            const particles = 16;
+
+            for (let i = 0; i < particles; i++) {
+                const angle = (Math.PI * 2 * i) / particles + Math.random() * 0.3;
+                const distance = 22 + Math.random() * 46;
+                const particle = document.createElement('span');
+                particle.className = 'star-particle';
+                particle.style.left = `${originX}px`;
+                particle.style.top = `${originY}px`;
+                particle.style.setProperty('--size', `${4 + Math.random() * 8}px`);
+                particle.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+                particle.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
+                particleLayer.appendChild(particle);
+                particle.addEventListener('animationend', () => particle.remove(), { once: true });
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = `星辰: ${score} / 20`;
+        }
+
+        function updateTimerDisplay() {
+            if (currentMode === 'compete') {
+                timeDisplay.textContent = `时间: ${timeLeft}s`;
+                timeDisplay.style.color = 'var(--accent)';
+            } else {
+                timeDisplay.textContent = '时间: 漫游模式';
+                timeDisplay.style.color = 'var(--text-main)';
+            }
+        }
+
+        function initTable() {
+            tableContainer.innerHTML = '';
+            for (let r = 1; r <= 4; r++) {
+                for (let c = 1; c <= 18; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell hidden';
+
+                    const el = elementData.find((item) => item.row === r && item.col === c);
+                    if (el) {
+                        cell.classList.remove('hidden');
+                        cell.classList.add('empty-slot');
+                        cell.dataset.num = String(el.num);
+                        cell.addEventListener('click', () => handleCellClick(cell, el));
+                    }
+                    tableContainer.appendChild(cell);
+                }
+            }
+            updateBoardMetrics();
+        }
+
+        function nextTurn() {
+            if (queue.length === 0) {
+                setTimeout(() => endGame(true), 650);
+                return;
+            }
+            currentTarget = queue.pop();
+            currentElementUI.textContent = `${currentTarget.sym} ${currentTarget.name}`;
+            pulseCurrentBadge();
+        }
+
+        function startGame(mode) {
+            if (!currentUsername) {
+                showScreen('screen-name');
+                showToast('请先登记代号。');
+                return;
+            }
+
+            initAudio();
+            currentMode = mode;
+            score = 0;
+            queue = shuffle(elementData);
+            currentTarget = null;
+            initTable();
+            updateScore();
+
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+
+            if (mode === 'compete') {
+                timeLeft = 90;
+                updateTimerDisplay();
+                timer = setInterval(() => {
+                    timeLeft -= 1;
+                    timeDisplay.textContent = `时间: ${Math.max(0, timeLeft)}s`;
+                    if (timeLeft <= 0) {
+                        endGame(false);
+                    }
+                }, 1000);
+            } else {
+                updateTimerDisplay();
+            }
+
+            showScreen('screen-game');
+            nextTurn();
+        }
+
+        function handleCellClick(cell, el) {
+            if (!currentTarget || !cell.classList.contains('empty-slot')) {
+                return;
+            }
+
+            if (el.num === currentTarget.num) {
+                playSuccessSound();
+                burstParticles(cell);
+                cell.classList.remove('empty-slot');
+                cell.classList.add('filled', `color-group-${el.group}`, 'correct-hit');
+                cell.innerHTML = `<div>${el.sym}</div><small>${el.name}</small>`;
+
+                showToast(`✨ ${el.name}：${el.fact}`);
+                score += 1;
+                updateScore();
+                nextTurn();
+
+                setTimeout(() => cell.classList.remove('correct-hit'), 720);
+            } else {
+                playErrorSound();
+                cell.classList.add('shake');
+                setTimeout(() => cell.classList.remove('shake'), 360);
+
+                if (currentMode === 'compete') {
+                    timeLeft = Math.max(0, timeLeft - 1);
+                    timeDisplay.textContent = `时间: ${timeLeft}s`;
+                    timeDisplay.style.color = 'var(--error)';
+                    setTimeout(() => {
+                        if (currentMode === 'compete') timeDisplay.style.color = 'var(--accent)';
+                    }, 260);
+                    if (timeLeft <= 0) {
+                        endGame(false);
+                    }
+                }
+            }
+        }
+
+        async function submitScore(username, timeUsed) {
+            try {
+                const res = await fetch('/api/saveScore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, time_used: timeUsed })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || '提交失败');
+                }
+
+                showToast('成绩已上传至星空数据库。');
+            } catch (error) {
+                console.error('提交失败', error);
+                showToast(`成绩上传失败：${error.message || '请检查 Cloudflare 与 Neon 配置。'}`);
+            }
+        }
+
+        function endGame(isWin) {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+
+            showScreen('screen-result');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+
+            if (isWin) {
+                title.textContent = '宇宙圆满';
+                if (currentMode === 'compete') {
+                    const timeUsed = 90 - timeLeft;
+                    desc.textContent = `指挥官 ${currentUsername}，你用 ${timeUsed} 秒让 20 颗元素星辰全部归位。`;
+                    submitScore(currentUsername, timeUsed);
+                } else {
+                    desc.textContent = `指挥官 ${currentUsername}，你完成了漫游模式的全部 20 颗元素归位。`;
+                }
+            } else {
+                title.textContent = '跃迁中断';
+                desc.textContent = `时间耗尽。你成功找回了 ${score} 颗星辰，回到大厅后可以立即再试一次。`;
+            }
+        }
+
+        async function fetchLeaderboard() {
+            showScreen('screen-leaderboard');
+            const content = document.getElementById('leaderboard-content');
+            content.textContent = '连接星空数据库中...';
+
+            try {
+                const res = await fetch('/api/getLeaderboard');
+                const data = await res.json().catch(() => []);
+
+                if (!res.ok) {
+                    throw new Error(data.error || '获取排行榜失败');
+                }
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    content.textContent = '暂无记录。完成一次跃迁模式通关后，你的成绩就会出现在这里。';
+                    return;
+                }
+
+                const list = document.createElement('ol');
+                list.className = 'leaderboard-list';
+
+                data.forEach((row, index) => {
+                    const item = document.createElement('li');
+                    item.className = 'leaderboard-item';
+                    const createdAt = row.created_at ? new Date(row.created_at).toLocaleString('zh-CN') : '未知时间';
+                    item.innerHTML = `
+                        <span class="leaderboard-rank">${index + 1}</span>
+                        <span class="leaderboard-name">
+                            <b>${row.username}</b>
+                            <small>ID ${row.id} · ${createdAt}</small>
+                        </span>
+                        <span class="leaderboard-time">${row.time_used}s</span>
+                    `;
+                    list.appendChild(item);
+                });
+
+                content.innerHTML = '';
+                content.appendChild(list);
+            } catch (error) {
+                console.error('获取失败', error);
+                content.textContent = `排行榜读取失败：${error.message || '请检查 Netlify 环境变量和 Neon 表结构。'}`;
+            }
+        }
+
+        document.getElementById('orientation-confirm').addEventListener('click', startIntroVideo);
+        document.getElementById('name-submit').addEventListener('click', confirmUsername);
+        document.getElementById('change-name-btn').addEventListener('click', () => showScreen('screen-name'));
+        document.getElementById('casual-mode-btn').addEventListener('click', () => startGame('casual'));
+        document.getElementById('compete-mode-btn').addEventListener('click', () => startGame('compete'));
+        document.getElementById('leaderboard-btn').addEventListener('click', fetchLeaderboard);
+        document.getElementById('leaderboard-back-btn').addEventListener('click', () => showScreen('screen-home'));
+        document.getElementById('game-back-btn').addEventListener('click', () => showScreen('screen-home'));
+        document.getElementById('result-home-btn').addEventListener('click', () => showScreen('screen-home'));
+        document.getElementById('result-leaderboard-btn').addEventListener('click', fetchLeaderboard);
+        usernameInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') confirmUsername();
+        });
+        introVideo.addEventListener('ended', finishIntroVideo);
+        introVideo.addEventListener('error', () => fallbackToNameScreen('开场视频加载失败，已直接进入登记页。'));
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initStars();
+            updateBoardMetrics();
+        });
+
+        resizeCanvas();
+        initStars();
+        drawStars();
+        updateIdentityChip();
+    </script>
+</body>
+</html>
